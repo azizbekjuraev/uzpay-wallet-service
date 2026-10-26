@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  ledger_entry_id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00, 
+  description VARCHAR(255),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
