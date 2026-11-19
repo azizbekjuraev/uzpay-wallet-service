@@ -8,9 +8,12 @@ import (
 	"os"
 	"uzpay/internal/app"
 	"uzpay/internal/config"
+	userapp "uzpay/internal/infrastructure/application/user"
+	"uzpay/internal/infrastructure/postgres"
+	"uzpay/internal/infrastructure/security"
 )
 
-func main () {
+func main() {
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
@@ -28,10 +31,14 @@ func main () {
 	}
 
 	defer dbpool.Close()
+	repo := postgres.NewUserRepository(dbpool)
+	hasher := security.NewBcryptHasher(12)
+	svc := userapp.NewService(repo, hasher)
+	ctx := context.Background()
+	svc.Register(ctx, "Azizbek", "juraev98@mail.ru", "9990", "998941500330")
 
 	log.Println("Listening on port :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err);
+		log.Fatal(err)
 	}
-};
-
+}

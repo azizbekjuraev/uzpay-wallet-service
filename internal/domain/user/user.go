@@ -81,3 +81,7 @@ func (u *User) ChangeEmail(newEmailStr string) error {
 func (u *User) Password() string {
 	return u.password
 }
+
+func (u *User) PhoneNumber() string {
+	return u.phoneNumber
+}
