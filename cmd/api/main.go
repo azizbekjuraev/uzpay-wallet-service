@@ -6,39 +6,39 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"uzpay/internal/app"
+	userapp "uzpay/internal/application/user"
 	"uzpay/internal/config"
-	userapp "uzpay/internal/infrastructure/application/user"
+	httpapi "uzpay/internal/http"
 	"uzpay/internal/infrastructure/postgres"
 	"uzpay/internal/infrastructure/security"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Println("error", err)
+	}
+}
+
+func run() error {
+	ctx := context.Background()
+
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-
-	dbpool, err := app.InitPool(context.Background(), cfg.DatabaseURL)
+	dbpool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
 		os.Exit(1)
 	}
-
 	defer dbpool.Close()
+
 	repo := postgres.NewUserRepository(dbpool)
 	hasher := security.NewBcryptHasher(12)
 	svc := userapp.NewService(repo, hasher)
-	ctx := context.Background()
-	svc.Register(ctx, "Azizbek", "juraev98@mail.ru", "9990", "998941500330")
-
-	log.Println("Listening on port :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
-	}
+	mux := http.NewServeMux()
+	userHandler := httpapi.NewUserHandler(svc)
+	mux.HandleFunc("POST /users", userHandler.Register)
+	return http.ListenAndServe(":8080", mux)
 }
