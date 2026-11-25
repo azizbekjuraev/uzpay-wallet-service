@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	userapp "uzpay/internal/application/user"
+	walletapp "uzpay/internal/application/wallet"
 	"uzpay/internal/config"
 	httpapi "uzpay/internal/http"
 	"uzpay/internal/infrastructure/postgres"
@@ -34,11 +35,19 @@ func run() error {
 	}
 	defer dbpool.Close()
 
+	// users
 	repo := postgres.NewUserRepository(dbpool)
 	hasher := security.NewBcryptHasher(12)
 	svc := userapp.NewService(repo, hasher)
 	mux := http.NewServeMux()
 	userHandler := httpapi.NewUserHandler(svc)
 	mux.HandleFunc("POST /users", userHandler.Register)
+
+	// wallets
+	walletrepo := postgres.NewWalletRepository(dbpool)
+	walletsvc := walletapp.NewService(walletrepo)
+	walletHandler := httpapi.NewWalletHandler(walletsvc)
+	mux.HandleFunc("POST /wallets", walletHandler.Register)
+
 	return http.ListenAndServe(":8080", mux)
 }
